@@ -172,7 +172,7 @@
         var li=document.createElement('li');
         li.innerHTML='<span>'+res.name+'</span><span>เลขที่ '+res.no+' • '+status+'</span>';
         document.getElementById('list').prepend(li);
-        flash('ok','✅', res.name+' (เลขที่ '+res.no+')'); beep(880);
+        flash('ok','✅', res.name+' (เลขที่ '+res.no+')'); chimeSuccess();
       } else if(res.duplicate){
         session[codeNow]=true; flash('dup','⚠️', res.message); beep(440);
       } else {
@@ -214,6 +214,27 @@
       g.gain.setValueAtTime(0.25, audioCtx.currentTime); o.start();
       g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
       o.stop(audioCtx.currentTime+0.15);
+    }catch(e){}
+  }
+
+  // เล่นโน้ตเดียว ณ เวลาที่กำหนด (ใช้ประกอบเสียงหลายโน้ต)
+  function tone(freq, startAt, dur){
+    var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type='sine'; o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001, startAt);
+    g.gain.exponentialRampToValueAtTime(0.25, startAt+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, startAt+dur);
+    o.start(startAt); o.stop(startAt+dur+0.02);
+  }
+
+  // เสียงสำเร็จ: สองโน้ตไล่ขึ้น "ติ๊ง-ติง"
+  function chimeSuccess(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var t=audioCtx.currentTime;
+      tone(784, t,       0.12);   // โน้ต G5
+      tone(1047, t+0.12, 0.16);   // โน้ต C6 (สูงขึ้น)
     }catch(e){}
   }
 </script>
