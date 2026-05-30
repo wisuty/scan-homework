@@ -133,6 +133,7 @@
   });
 
   document.getElementById('startBtn').onclick = function(){
+    unlockAudio();   // ปลดล็อกเสียงตอนแตะปุ่ม (จำเป็นบน iOS)
     document.getElementById('setup').style.display='none';
     document.getElementById('scanCard').style.display='block';
     scanner = new Html5Qrcode('reader');
@@ -189,14 +190,30 @@
     fb.innerHTML='<span class="ico">'+ico+'</span><span>'+msg+'</span>';
   }
 
+  // ===== เสียงตอบรับ (รองรับ iOS) =====
+  var audioCtx = null;
+
+  // ปลดล็อกเสียง — ต้องเรียกจากการแตะจริง (เช่นตอนกดปุ่มเริ่มสแกน)
+  function unlockAudio(){
+    try{
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      g.gain.value = 0;                 // เงียบสนิท แค่ปลุก audio engine
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start(); o.stop(audioCtx.currentTime + 0.02);
+    }catch(e){}
+  }
+
   function beep(freq){
     try{
-      var ctx=new (window.AudioContext||window.webkitAudioContext)();
-      var o=ctx.createOscillator(), g=ctx.createGain();
-      o.frequency.value=freq; o.connect(g); g.connect(ctx.destination);
-      g.gain.setValueAtTime(0.15,ctx.currentTime); o.start();
-      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.15);
-      o.stop(ctx.currentTime+0.15);
+      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+      var o=audioCtx.createOscillator(), g=audioCtx.createGain();
+      o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.25, audioCtx.currentTime); o.start();
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
+      o.stop(audioCtx.currentTime+0.15);
     }catch(e){}
   }
 </script>
