@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>สแกนส่งการบ้าน</title>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --panel:#1e293b; --panel2:#334155;
+    --ink:#f1f5f9; --muted:#94a3b8; --line:#475569;
+    --ok:#10b981; --warn:#f59e0b; --err:#ef4444; --accent:#38bdf8;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  body{margin:0; font-family:'Segoe UI','Sarabun',system-ui,sans-serif;
+       background:var(--bg); color:var(--ink); padding:14px; padding-bottom:40px;}
+  h1{font-size:18px; margin:4px 0 14px; font-weight:700;}
+  .card{background:var(--panel); border:1px solid var(--line);
+        border-radius:14px; padding:14px; margin-bottom:12px;}
+  label{display:block; font-size:13px; color:var(--muted); margin:8px 0 4px;}
+  select,input{width:100%; padding:12px; font-size:16px; border-radius:10px;
+        border:1px solid var(--line); background:var(--panel2); color:var(--ink);}
+  .seg{display:flex; gap:6px; margin-top:4px;}
+  .seg button{flex:1; padding:11px 4px; font-size:14px; border-radius:10px;
+        border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-weight:600;}
+  .seg button.active{background:var(--accent); color:#06283d; border-color:var(--accent);}
+  .btn{width:100%; padding:15px; font-size:17px; font-weight:700; border:none;
+       border-radius:12px; background:var(--accent); color:#06283d; margin-top:6px;}
+  .btn.stop{background:var(--err); color:#fff;}
+  .btn:disabled{opacity:.4;}
+  #reader{border-radius:12px; overflow:hidden; margin-top:10px;}
+  .feedback{min-height:64px; border-radius:12px; padding:14px; margin-top:10px;
+        display:flex; align-items:center; gap:12px; font-weight:700; font-size:17px;
+        background:var(--panel2); transition:background .15s;}
+  .feedback.ok{background:var(--ok); color:#04241a;}
+  .feedback.dup{background:var(--warn); color:#3d2700;}
+  .feedback.err{background:var(--err); color:#fff;}
+  .feedback .ico{font-size:26px;}
+  .count{font-size:14px; color:var(--muted); margin:10px 0 6px; font-weight:600;}
+  .list{list-style:none; padding:0; margin:0; max-height:240px; overflow:auto;}
+  .list li{display:flex; justify-content:space-between; padding:10px 12px;
+        border-bottom:1px solid var(--line); font-size:15px;}
+  .list li span:last-child{color:var(--muted); font-size:13px;}
+  .hint{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5;}
+</style>
+</head>
+<body>
+  <h1>📕 สแกนส่งการบ้าน</h1>
+
+  <div class="card" id="setup">
+    <label>ชื่อครูผู้บันทึก</label>
+    <input id="teacher" type="text" placeholder="เช่น ครูสมศรี">
+
+    <label>วิชา</label>
+    <select id="subject"><option value="">— เลือกวิชา —</option></select>
+
+    <label>ชิ้นงาน</label>
+    <select id="assignment"><option value="">— เลือกชิ้นงาน —</option></select>
+
+    <label>สถานะการส่ง</label>
+    <div class="seg" id="statusSeg">
+      <button data-v="ส่งตรงเวลา" class="active">ตรงเวลา</button>
+      <button data-v="ส่งช้า">ส่งช้า</button>
+      <button data-v="ส่งซ่อม">ส่งซ่อม</button>
+    </div>
+
+    <label>คะแนน (ไม่บังคับ)</label>
+    <input id="score" type="number" inputmode="numeric" placeholder="เว้นว่างได้">
+
+    <button class="btn" id="startBtn" disabled>📷 เริ่มสแกน</button>
+    <p class="hint" id="loadHint">กำลังเชื่อมต่อฐานข้อมูล…</p>
+  </div>
+
+  <div class="card" id="scanCard" style="display:none;">
+    <div id="reader"></div>
+    <div class="feedback" id="feedback"><span class="ico">⏳</span><span id="fbText">เล็งกล้องไปที่ QR บนหน้าปกสมุด</span></div>
+    <button class="btn stop" id="stopBtn">⏹ หยุดสแกน</button>
+    <div class="count" id="count">บันทึกแล้ว 0 คน</div>
+    <ul class="list" id="list"></ul>
+  </div>
+
+<script>
+  /* ====== ใส่ลิงก์ /exec ของคุณตรงนี้ (จาก Manage deployments) ====== */
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCs0WushRTGCDCYPkz4g-ShQuNGGzQmy0HI6sNIpEdgT6-sOm74kG9PXXd5i9v0VEm/exec';
+  /* ================================================================ */
+
+  var DATA = { subjects:[], assignments:[] };
+  var scanner = null, status = 'ส่งตรงเวลา', session = {}, count = 0, busy = false;
+
+  // เรียก API ผ่าน GET (เลี่ยงปัญหา CORS preflight)
+  function api(params){
+    var qs = Object.keys(params).map(function(k){
+      return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
+    }).join('&');
+    return fetch(SCRIPT_URL+'?'+qs).then(function(r){ return r.json(); });
+  }
+
+  // โหลดวิชา/ชิ้นงาน
+  api({action:'formdata'}).then(function(d){
+    DATA = d;
+    var sub = document.getElementById('subject');
+    d.subjects.forEach(function(s){
+      var o=document.createElement('option'); o.value=s.code; o.textContent=s.name; sub.appendChild(o);
+    });
+    document.getElementById('loadHint').textContent =
+      'เลือกวิชาและชิ้นงานก่อน แล้วสแกนรัวได้ทั้งห้อง • ระบบกันบันทึกซ้ำในวันเดียวกันอัตโนมัติ';
+  }).catch(function(){
+    document.getElementById('loadHint').textContent =
+      '⚠️ เชื่อมต่อฐานข้อมูลไม่ได้ — ตรวจว่า SCRIPT_URL ถูกต้อง และ Deploy เป็น "Anyone"';
+  });
+
+  document.getElementById('subject').onchange = function(){
+    var asg = document.getElementById('assignment');
+    asg.innerHTML = '<option value="">— เลือกชิ้นงาน —</option>';
+    DATA.assignments.filter(function(a){ return String(a.subject)===String(this.value); }, this)
+      .forEach(function(a){
+        var o=document.createElement('option'); o.value=a.code; o.textContent=a.name; asg.appendChild(o);
+      });
+    checkReady();
+  };
+  document.getElementById('assignment').onchange = checkReady;
+  function checkReady(){
+    var ready = document.getElementById('subject').value && document.getElementById('assignment').value;
+    document.getElementById('startBtn').disabled = !ready;
+  }
+
+  document.querySelectorAll('#statusSeg button').forEach(function(b){
+    b.onclick = function(){
+      document.querySelectorAll('#statusSeg button').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active'); status = b.dataset.v;
+    };
+  });
+
+  document.getElementById('startBtn').onclick = function(){
+    document.getElementById('setup').style.display='none';
+    document.getElementById('scanCard').style.display='block';
+    scanner = new Html5Qrcode('reader');
+    scanner.start({ facingMode:'environment' },
+      { fps:10, qrbox:{width:230,height:230} },
+      onScan, function(){} )
+      .catch(function(err){
+        flash('err','❌','เปิดกล้องไม่ได้: '+err+' — ลองอนุญาตกล้องใน Safari');
+      });
+  };
+
+  document.getElementById('stopBtn').onclick = function(){
+    if(scanner){ scanner.stop().then(function(){ scanner.clear(); }); }
+    document.getElementById('setup').style.display='block';
+    document.getElementById('scanCard').style.display='none';
+  };
+
+  function onScan(text){
+    if(busy) return;
+    var codeNow = text.trim();
+    if(session[codeNow]){ flash('dup','⚠️','สแกนซ้ำในรอบนี้: '+codeNow); return; }
+    busy = true;
+    flash('', '⏳', 'กำลังบันทึก…');
+
+    api({
+      action:'scan',
+      studentCode: codeNow,
+      assignmentCode: document.getElementById('assignment').value,
+      status: status,
+      score: document.getElementById('score').value,
+      teacher: document.getElementById('teacher').value
+    }).then(function(res){
+      if(res.ok){
+        session[codeNow] = true; count++;
+        document.getElementById('count').textContent = 'บันทึกแล้ว '+count+' คน';
+        var li=document.createElement('li');
+        li.innerHTML='<span>'+res.name+'</span><span>เลขที่ '+res.no+' • '+status+'</span>';
+        document.getElementById('list').prepend(li);
+        flash('ok','✅', res.name+' (เลขที่ '+res.no+')'); beep(880);
+      } else if(res.duplicate){
+        session[codeNow]=true; flash('dup','⚠️', res.message); beep(440);
+      } else {
+        flash('err','❌', res.message); beep(220);
+      }
+      setTimeout(function(){ busy=false; }, 1200);
+    }).catch(function(e){
+      flash('err','❌','ส่งข้อมูลไม่ได้: '+e.message); busy=false;
+    });
+  }
+
+  function flash(cls,ico,msg){
+    var fb=document.getElementById('feedback');
+    fb.className='feedback '+cls;
+    fb.innerHTML='<span class="ico">'+ico+'</span><span>'+msg+'</span>';
+  }
+
+  function beep(freq){
+    try{
+      var ctx=new (window.AudioContext||window.webkitAudioContext)();
+      var o=ctx.createOscillator(), g=ctx.createGain();
+      o.frequency.value=freq; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.15,ctx.currentTime); o.start();
+      g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.15);
+      o.stop(ctx.currentTime+0.15);
+    }catch(e){}
+  }
+</script>
+</body>
+</html>
