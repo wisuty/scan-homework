@@ -81,7 +81,7 @@
 
 <script>
   /* ====== ใส่ลิงก์ /exec ของคุณตรงนี้ (จาก Manage deployments) ====== */
-  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxCs0WushRTGCDCYPkz4g-ShQuNGGzQmy0HI6sNIpEdgT6-sOm74kG9PXXd5i9v0VEm/exec';
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxEQxp4fVeh5Hlsvix2MY_gwWxYf70iuCRXBSpqNbqtPBbPbuT1EtYtxyLZ2gqSKepK/exec';
   /* ================================================================ */
 
   var DATA = { subjects:[], assignments:[] };
@@ -89,10 +89,11 @@
 
   // เรียก API ผ่าน GET (เลี่ยงปัญหา CORS preflight)
   function api(params){
+    params._ = Date.now();   // กัน cache ค้าง
     var qs = Object.keys(params).map(function(k){
       return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
     }).join('&');
-    return fetch(SCRIPT_URL+'?'+qs).then(function(r){ return r.json(); });
+    return fetch(SCRIPT_URL+'?'+qs, {cache:'no-store'}).then(function(r){ return r.json(); });
   }
 
   // โหลดวิชา/ชิ้นงาน
