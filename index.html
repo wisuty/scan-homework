@@ -6,237 +6,256 @@
 <title>สแกนส่งการบ้าน</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <style>
-  :root{
-    --bg:#0f172a; --panel:#1e293b; --panel2:#334155;
-    --ink:#f1f5f9; --muted:#94a3b8; --line:#475569;
-    --ok:#10b981; --warn:#f59e0b; --err:#ef4444; --accent:#38bdf8;
-  }
-  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  body{margin:0; font-family:'Segoe UI','Sarabun',system-ui,sans-serif;
-       background:var(--bg); color:var(--ink); padding:14px; padding-bottom:40px;}
-  h1{font-size:18px; margin:4px 0 14px; font-weight:700;}
-  .card{background:var(--panel); border:1px solid var(--line);
-        border-radius:14px; padding:14px; margin-bottom:12px;}
-  label{display:block; font-size:13px; color:var(--muted); margin:8px 0 4px;}
-  select,input{width:100%; padding:12px; font-size:16px; border-radius:10px;
-        border:1px solid var(--line); background:var(--panel2); color:var(--ink);}
-  .seg{display:flex; gap:6px; margin-top:4px;}
-  .seg button{flex:1; padding:11px 4px; font-size:14px; border-radius:10px;
-        border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-weight:600;}
-  .seg button.active{background:var(--accent); color:#06283d; border-color:var(--accent);}
-  .btn{width:100%; padding:15px; font-size:17px; font-weight:700; border:none;
-       border-radius:12px; background:var(--accent); color:#06283d; margin-top:6px;}
-  .btn.stop{background:var(--err); color:#fff;}
+  :root{--bg:#0f172a;--panel:#1e293b;--panel2:#334155;--ink:#f1f5f9;--muted:#94a3b8;
+    --line:#475569;--ok:#10b981;--warn:#f59e0b;--err:#ef4444;--accent:#38bdf8;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;font-family:'Segoe UI','Sarabun',system-ui,sans-serif;background:var(--bg);color:var(--ink);padding:14px;padding-bottom:40px;}
+  h1{font-size:18px;margin:4px 0 14px;font-weight:700;}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px;}
+  label{display:block;font-size:13px;color:var(--muted);margin:8px 0 4px;}
+  select,input{width:100%;padding:12px;font-size:16px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);}
+  .seg{display:flex;gap:6px;margin-top:4px;}
+  .seg button{flex:1;padding:11px 4px;font-size:14px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:600;}
+  .seg button.active{background:var(--accent);color:#06283d;border-color:var(--accent);}
+  .btn{width:100%;padding:15px;font-size:17px;font-weight:700;border:none;border-radius:12px;background:var(--accent);color:#06283d;margin-top:6px;}
+  .btn.stop{background:var(--err);color:#fff;} .btn.ghost{background:var(--panel2);color:var(--ink);border:1px solid var(--line);}
   .btn:disabled{opacity:.4;}
-  #reader{border-radius:12px; overflow:hidden; margin-top:10px;}
-  .feedback{min-height:64px; border-radius:12px; padding:14px; margin-top:10px;
-        display:flex; align-items:center; gap:12px; font-weight:700; font-size:17px;
-        background:var(--panel2); transition:background .15s;}
-  .feedback.ok{background:var(--ok); color:#04241a;}
-  .feedback.dup{background:var(--warn); color:#3d2700;}
-  .feedback.err{background:var(--err); color:#fff;}
+  #reader{border-radius:12px;overflow:hidden;margin-top:10px;}
+  .feedback{min-height:64px;border-radius:12px;padding:14px;margin-top:10px;display:flex;align-items:center;gap:12px;font-weight:700;font-size:17px;background:var(--panel2);}
+  .feedback.ok{background:var(--ok);color:#04241a;} .feedback.dup{background:var(--warn);color:#3d2700;} .feedback.err{background:var(--err);color:#fff;}
   .feedback .ico{font-size:26px;}
-  .count{font-size:14px; color:var(--muted); margin:10px 0 6px; font-weight:600;}
-  .list{list-style:none; padding:0; margin:0; max-height:240px; overflow:auto;}
-  .list li{display:flex; justify-content:space-between; padding:10px 12px;
-        border-bottom:1px solid var(--line); font-size:15px;}
-  .list li span:last-child{color:var(--muted); font-size:13px;}
-  .hint{font-size:12px; color:var(--muted); margin-top:6px; line-height:1.5;}
+  .count{font-size:14px;color:var(--muted);margin:10px 0 6px;font-weight:600;}
+  .list{list-style:none;padding:0;margin:0;max-height:240px;overflow:auto;}
+  .list li{display:flex;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line);font-size:15px;}
+  .list li span:last-child{color:var(--muted);font-size:13px;}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;}
+  .nav{display:flex;gap:6px;margin-bottom:12px;}
+  .nav button{flex:1;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-weight:600;font-size:14px;}
+  .nav button.active{background:var(--accent);color:#06283d;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);margin-bottom:8px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;}
+  th{color:var(--muted);font-weight:600;}
+  .pct-ok{color:var(--ok);font-weight:700;} .pct-low{color:var(--err);font-weight:700;}
 </style>
 </head>
 <body>
   <h1>📕 สแกนส่งการบ้าน</h1>
+  <div id="brand" class="hint" style="margin:-8px 0 12px;font-size:13px;"></div>
 
-  <div class="card" id="setup">
-    <label>ชื่อครูผู้บันทึก</label>
-    <input id="teacher" type="text" placeholder="เช่น ครูสมศรี">
-
-    <label>วิชา</label>
-    <select id="subject"><option value="">— เลือกวิชา —</option></select>
-
-    <label>ชิ้นงาน</label>
-    <select id="assignment"><option value="">— เลือกชิ้นงาน —</option></select>
-
-    <label>สถานะการส่ง</label>
-    <div class="seg" id="statusSeg">
-      <button data-v="ส่งตรงเวลา" class="active">ตรงเวลา</button>
-      <button data-v="ส่งช้า">ส่งช้า</button>
-      <button data-v="ส่งซ่อม">ส่งซ่อม</button>
-    </div>
-
-    <label>คะแนน (ไม่บังคับ)</label>
-    <input id="score" type="number" inputmode="numeric" placeholder="เว้นว่างได้">
-
-    <button class="btn" id="startBtn" disabled>📷 เริ่มสแกน</button>
-    <p class="hint" id="loadHint">กำลังเชื่อมต่อฐานข้อมูล…</p>
+  <!-- ===== หน้าล็อกอิน ===== -->
+  <div class="card" id="loginScreen">
+    <label>ชื่อผู้ใช้ (username)</label>
+    <input id="lgUser" type="text" autocapitalize="off" placeholder="เช่น teacher01">
+    <label>รหัสผ่าน</label>
+    <input id="lgPass" type="password" placeholder="รหัสผ่าน">
+    <button class="btn" id="lgBtn">เข้าสู่ระบบ</button>
+    <p class="hint" id="lgHint">ใช้บัญชีที่แอดมินสร้างให้ • รหัสผ่านเริ่มต้นคือ 1234 (ควรเปลี่ยนหลังเข้าครั้งแรก)</p>
   </div>
 
-  <div class="card" id="scanCard" style="display:none;">
-    <div id="reader"></div>
-    <div class="feedback" id="feedback"><span class="ico">⏳</span><span id="fbText">เล็งกล้องไปที่ QR บนหน้าปกสมุด</span></div>
-    <button class="btn stop" id="stopBtn">⏹ หยุดสแกน</button>
-    <div class="count" id="count">บันทึกแล้ว 0 คน</div>
-    <ul class="list" id="list"></ul>
+  <!-- ===== แอปหลัง login ===== -->
+  <div id="appScreen" style="display:none;">
+    <div class="topbar"><span id="who"></span><a href="#" id="logout" style="color:var(--accent);">ออกจากระบบ</a></div>
+    <div class="nav">
+      <button data-tab="scan" class="active">สแกน</button>
+      <button data-tab="data">ดูข้อมูล</button>
+      <button data-tab="settings">ตั้งค่า</button>
+    </div>
+
+    <!-- แท็บสแกน -->
+    <div id="tab-scan">
+      <div class="card" id="setup">
+        <label>วิชา</label>
+        <select id="subject"><option value="">— เลือกวิชา —</option></select>
+        <label>ชิ้นงาน</label>
+        <select id="assignment"><option value="">— เลือกชิ้นงาน —</option></select>
+        <label>สถานะการส่ง</label>
+        <div class="seg" id="statusSeg">
+          <button data-v="ส่งตรงเวลา" class="active">ตรงเวลา</button>
+          <button data-v="ส่งช้า">ส่งช้า</button>
+          <button data-v="ส่งซ่อม">ส่งซ่อม</button>
+        </div>
+        <label>คะแนน (ไม่บังคับ)</label>
+        <input id="score" type="number" inputmode="numeric" placeholder="เว้นว่างได้">
+        <button class="btn" id="startBtn" disabled>📷 เริ่มสแกน</button>
+        <p class="hint">เลือกวิชาและชิ้นงานก่อน แล้วสแกนรัวได้ทั้งห้อง • กันบันทึกซ้ำในวันเดียวกันอัตโนมัติ</p>
+      </div>
+      <div class="card" id="scanCard" style="display:none;">
+        <div id="reader"></div>
+        <div class="feedback" id="feedback"><span class="ico">⏳</span><span>เล็งกล้องไปที่ QR บนหน้าปก</span></div>
+        <button class="btn stop" id="stopBtn">⏹ หยุดสแกน</button>
+        <div class="count" id="count">บันทึกแล้ว 0 คน</div>
+        <ul class="list" id="list"></ul>
+      </div>
+    </div>
+
+    <!-- แท็บดูข้อมูล -->
+    <div id="tab-data" style="display:none;">
+      <div class="card">
+        <div class="topbar"><b style="color:var(--ink)">สรุปงานของฉัน</b><a href="#" id="refreshData" style="color:var(--accent)">รีเฟรช</a></div>
+        <div id="dataBody"><p class="hint">กำลังโหลด…</p></div>
+      </div>
+    </div>
+
+    <!-- แท็บตั้งค่า -->
+    <div id="tab-settings" style="display:none;">
+      <div class="card">
+        <b>เปลี่ยนรหัสผ่าน</b>
+        <label>รหัสผ่านเดิม</label><input id="oldpw" type="password">
+        <label>รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)</label><input id="newpw" type="password">
+        <button class="btn" id="pwBtn">บันทึกรหัสผ่านใหม่</button>
+        <p class="hint" id="pwHint"></p>
+      </div>
+    </div>
   </div>
 
 <script>
-  /* ====== ใส่ลิงก์ /exec ของคุณตรงนี้ (จาก Manage deployments) ====== */
-  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxEQxp4fVeh5Hlsvix2MY_gwWxYf70iuCRXBSpqNbqtPBbPbuT1EtYtxyLZ2gqSKepK/exec';
-  /* ================================================================ */
+  /* ====== ใส่ลิงก์ /exec ของคุณตรงนี้ ====== */
+  var SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxi3DRzwNffYYwLkd_vTtuyQS2Ht2AAh5FUWoA_WonTc1Po44T9JvBGr2LNxQmbg1Sq/exec';
+  /* ======================================== */
 
-  var DATA = { subjects:[], assignments:[] };
-  var scanner = null, status = 'ส่งตรงเวลา', session = {}, count = 0, busy = false;
+  var token = localStorage.getItem('hw_token') || '';
+  var teacher = JSON.parse(localStorage.getItem('hw_teacher') || 'null');
+  var DATA={subjects:[],assignments:[]}, scanner=null, status='ส่งตรงเวลา', session={}, count=0, busy=false, audioCtx=null;
 
-  // เรียก API ผ่าน GET (เลี่ยงปัญหา CORS preflight)
   function api(params){
-    params._ = Date.now();   // กัน cache ค้าง
-    var qs = Object.keys(params).map(function(k){
-      return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);
-    }).join('&');
-    return fetch(SCRIPT_URL+'?'+qs, {cache:'no-store'}).then(function(r){ return r.json(); });
+    params._=Date.now();
+    var qs=Object.keys(params).map(function(k){return encodeURIComponent(k)+'='+encodeURIComponent(params[k]);}).join('&');
+    return fetch(SCRIPT_URL+'?'+qs,{cache:'no-store'}).then(function(r){return r.json();});
+  }
+  function logoutNow(){ localStorage.removeItem('hw_token'); localStorage.removeItem('hw_teacher'); token=''; teacher=null; show('login'); }
+  function show(which){
+    document.getElementById('loginScreen').style.display = which==='login'?'block':'none';
+    document.getElementById('appScreen').style.display   = which==='app'?'block':'none';
   }
 
-  // โหลดวิชา/ชิ้นงาน
-  api({action:'formdata'}).then(function(d){
-    DATA = d;
-    var sub = document.getElementById('subject');
-    d.subjects.forEach(function(s){
-      var o=document.createElement('option'); o.value=s.code; o.textContent=s.name; sub.appendChild(o);
-    });
-    document.getElementById('loadHint').textContent =
-      'เลือกวิชาและชิ้นงานก่อน แล้วสแกนรัวได้ทั้งห้อง • ระบบกันบันทึกซ้ำในวันเดียวกันอัตโนมัติ';
-  }).catch(function(){
-    document.getElementById('loadHint').textContent =
-      '⚠️ เชื่อมต่อฐานข้อมูลไม่ได้ — ตรวจว่า SCRIPT_URL ถูกต้อง และ Deploy เป็น "Anyone"';
-  });
+  // ---------- ล็อกอิน ----------
+  document.getElementById('lgBtn').onclick=function(){
+    var u=document.getElementById('lgUser').value.trim(), p=document.getElementById('lgPass').value;
+    if(!u||!p){ document.getElementById('lgHint').textContent='กรอกชื่อผู้ใช้และรหัสผ่าน'; return; }
+    document.getElementById('lgHint').textContent='กำลังเข้าสู่ระบบ…';
+    api({action:'login',username:u,password:p}).then(function(res){
+      if(res.ok){ token=res.token; teacher=res.teacher;
+        localStorage.setItem('hw_token',token); localStorage.setItem('hw_teacher',JSON.stringify(teacher));
+        enterApp();
+      } else { document.getElementById('lgHint').textContent='❌ '+res.message; }
+    }).catch(function(){ document.getElementById('lgHint').textContent='⚠️ เชื่อมต่อไม่ได้ — ตรวจ SCRIPT_URL / Deploy เป็น Anyone'; });
+  };
+  document.getElementById('logout').onclick=function(e){ e.preventDefault(); logoutNow(); };
 
-  document.getElementById('subject').onchange = function(){
-    var asg = document.getElementById('assignment');
-    asg.innerHTML = '<option value="">— เลือกชิ้นงาน —</option>';
-    DATA.assignments.filter(function(a){ return String(a.subject)===String(this.value); }, this)
-      .forEach(function(a){
-        var o=document.createElement('option'); o.value=a.code; o.textContent=a.name; asg.appendChild(o);
-      });
+  function enterApp(){
+    show('app');
+    document.getElementById('who').textContent = teacher.name+' • '+teacher.grade;
+    loadForm();
+  }
+
+  // ---------- โหลดวิชา/ชิ้นงานของครู ----------
+  function loadForm(){
+    api({action:'formdata',token:token}).then(function(d){
+      if(d.authError){ logoutNow(); return; }
+      if(d.info){ document.getElementById('brand').textContent = d.info.school + ' • ' + d.info.department + ' • ภาคเรียน ' + d.info.term; }
+      DATA=d; var sub=document.getElementById('subject');
+      sub.innerHTML='<option value="">— เลือกวิชา —</option>';
+      d.subjects.forEach(function(s){ var o=document.createElement('option');o.value=s.code;o.textContent=s.name;sub.appendChild(o); });
+    });
+  }
+  document.getElementById('subject').onchange=function(){
+    var asg=document.getElementById('assignment');
+    asg.innerHTML='<option value="">— เลือกชิ้นงาน —</option>';
+    DATA.assignments.filter(function(a){return String(a.subject)===String(this.value);},this)
+      .forEach(function(a){var o=document.createElement('option');o.value=a.code;o.textContent=a.name+' ('+a.room+')';asg.appendChild(o);});
     checkReady();
   };
-  document.getElementById('assignment').onchange = checkReady;
-  function checkReady(){
-    var ready = document.getElementById('subject').value && document.getElementById('assignment').value;
-    document.getElementById('startBtn').disabled = !ready;
-  }
+  document.getElementById('assignment').onchange=checkReady;
+  function checkReady(){ document.getElementById('startBtn').disabled=!(document.getElementById('subject').value&&document.getElementById('assignment').value); }
 
   document.querySelectorAll('#statusSeg button').forEach(function(b){
-    b.onclick = function(){
-      document.querySelectorAll('#statusSeg button').forEach(function(x){x.classList.remove('active');});
-      b.classList.add('active'); status = b.dataset.v;
+    b.onclick=function(){ document.querySelectorAll('#statusSeg button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active'); status=b.dataset.v; };
+  });
+
+  // ---------- nav ----------
+  document.querySelectorAll('.nav button').forEach(function(b){
+    b.onclick=function(){
+      document.querySelectorAll('.nav button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active');
+      ['scan','data','settings'].forEach(function(t){ document.getElementById('tab-'+t).style.display=(t===b.dataset.tab)?'block':'none'; });
+      if(b.dataset.tab==='data') loadMyData();
     };
   });
 
-  document.getElementById('startBtn').onclick = function(){
-    unlockAudio();   // ปลดล็อกเสียงตอนแตะปุ่ม (จำเป็นบน iOS)
+  // ---------- สแกน ----------
+  document.getElementById('startBtn').onclick=function(){
+    unlockAudio();
     document.getElementById('setup').style.display='none';
     document.getElementById('scanCard').style.display='block';
-    scanner = new Html5Qrcode('reader');
-    scanner.start({ facingMode:'environment' },
-      { fps:10, qrbox:{width:230,height:230} },
-      onScan, function(){} )
-      .catch(function(err){
-        flash('err','❌','เปิดกล้องไม่ได้: '+err+' — ลองอนุญาตกล้องใน Safari');
-      });
+    scanner=new Html5Qrcode('reader');
+    scanner.start({facingMode:'environment'},{fps:10,qrbox:{width:230,height:230}},onScan,function(){})
+      .catch(function(err){ flash('err','❌','เปิดกล้องไม่ได้: '+err); });
   };
-
-  document.getElementById('stopBtn').onclick = function(){
-    if(scanner){ scanner.stop().then(function(){ scanner.clear(); }); }
+  document.getElementById('stopBtn').onclick=function(){
+    if(scanner){ scanner.stop().then(function(){scanner.clear();}); }
     document.getElementById('setup').style.display='block';
     document.getElementById('scanCard').style.display='none';
   };
-
   function onScan(text){
-    if(busy) return;
-    var codeNow = text.trim();
-    if(session[codeNow]){ flash('dup','⚠️','สแกนซ้ำในรอบนี้: '+codeNow); return; }
-    busy = true;
-    flash('', '⏳', 'กำลังบันทึก…');
+    if(busy) return; var c=text.trim();
+    if(session[c]){ flash('dup','⚠️','สแกนซ้ำในรอบนี้: '+c); return; }
+    busy=true; flash('','⏳','กำลังบันทึก…');
+    api({action:'scan',token:token,studentCode:c,assignmentCode:document.getElementById('assignment').value,
+         status:status,score:document.getElementById('score').value}).then(function(res){
+      if(res.authError){ logoutNow(); return; }
+      if(res.ok){ session[c]=true; count++;
+        document.getElementById('count').textContent='บันทึกแล้ว '+count+' คน';
+        var li=document.createElement('li'); li.innerHTML='<span>'+res.name+'</span><span>เลขที่ '+res.no+' • '+status+'</span>';
+        document.getElementById('list').prepend(li); flash('ok','✅',res.name+' (เลขที่ '+res.no+')'); chimeSuccess();
+      } else if(res.duplicate){ session[c]=true; flash('dup','⚠️',res.message); beep(440); }
+      else { flash('err','❌',res.message); beep(220); }
+      setTimeout(function(){busy=false;},1200);
+    }).catch(function(e){ flash('err','❌','ส่งข้อมูลไม่ได้'); busy=false; });
+  }
 
-    api({
-      action:'scan',
-      studentCode: codeNow,
-      assignmentCode: document.getElementById('assignment').value,
-      status: status,
-      score: document.getElementById('score').value,
-      teacher: document.getElementById('teacher').value
-    }).then(function(res){
-      if(res.ok){
-        session[codeNow] = true; count++;
-        document.getElementById('count').textContent = 'บันทึกแล้ว '+count+' คน';
-        var li=document.createElement('li');
-        li.innerHTML='<span>'+res.name+'</span><span>เลขที่ '+res.no+' • '+status+'</span>';
-        document.getElementById('list').prepend(li);
-        flash('ok','✅', res.name+' (เลขที่ '+res.no+')'); chimeSuccess();
-      } else if(res.duplicate){
-        session[codeNow]=true; flash('dup','⚠️', res.message); beep(440);
-      } else {
-        flash('err','❌', res.message); beep(220);
-      }
-      setTimeout(function(){ busy=false; }, 1200);
-    }).catch(function(e){
-      flash('err','❌','ส่งข้อมูลไม่ได้: '+e.message); busy=false;
+  // ---------- ดูข้อมูล ----------
+  document.getElementById('refreshData').onclick=function(e){ e.preventDefault(); loadMyData(); };
+  function loadMyData(){
+    document.getElementById('dataBody').innerHTML='<p class="hint">กำลังโหลด…</p>';
+    api({action:'mydata',token:token}).then(function(d){
+      if(d.authError){ logoutNow(); return; }
+      var h='<p class="hint">ภาคเรียน '+d.term+' • ค้างส่งรวม '+d.pending.length+' รายการ</p>';
+      h+='<table><tr><th>ชิ้นงาน</th><th>ห้อง</th><th>ส่ง/ควร</th><th>ครบ</th></tr>';
+      d.summary.forEach(function(s){
+        var pct=s.should?Math.round(s.sent/s.should*100):0;
+        h+='<tr><td>'+s.name+'<br><span style="color:var(--muted);font-size:11px">'+s.subject+'</span></td><td>'+s.room+'</td><td>'+s.sent+'/'+s.should+'</td><td class="'+(pct>=80?'pct-ok':'pct-low')+'">'+pct+'%</td></tr>';
+      });
+      h+='</table>';
+      document.getElementById('dataBody').innerHTML=h;
     });
   }
 
-  function flash(cls,ico,msg){
-    var fb=document.getElementById('feedback');
-    fb.className='feedback '+cls;
-    fb.innerHTML='<span class="ico">'+ico+'</span><span>'+msg+'</span>';
-  }
+  // ---------- เปลี่ยนรหัสผ่าน ----------
+  document.getElementById('pwBtn').onclick=function(){
+    var o=document.getElementById('oldpw').value, n=document.getElementById('newpw').value;
+    document.getElementById('pwHint').textContent='กำลังบันทึก…';
+    api({action:'changepw',token:token,oldpw:o,newpw:n}).then(function(res){
+      if(res.authError){ logoutNow(); return; }
+      document.getElementById('pwHint').textContent=(res.ok?'✅ ':'❌ ')+res.message;
+      if(res.ok){ document.getElementById('oldpw').value=''; document.getElementById('newpw').value=''; }
+    });
+  };
 
-  // ===== เสียงตอบรับ (รองรับ iOS) =====
-  var audioCtx = null;
+  // ---------- เสียง ----------
+  function unlockAudio(){ try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended')audioCtx.resume();
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();g.gain.value=0;o.connect(g);g.connect(audioCtx.destination);o.start();o.stop(audioCtx.currentTime+0.02);}catch(e){} }
+  function tone(f,s,d){ var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;o.connect(g);g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001,s);g.gain.exponentialRampToValueAtTime(0.25,s+0.01);g.gain.exponentialRampToValueAtTime(0.0001,s+d);o.start(s);o.stop(s+d+0.02); }
+  function chimeSuccess(){ try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended')audioCtx.resume();
+    var t=audioCtx.currentTime; tone(784,t,0.12); tone(1047,t+0.12,0.16);}catch(e){} }
+  function beep(f){ try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended')audioCtx.resume();
+    var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=f;o.connect(g);g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.25,audioCtx.currentTime);o.start();g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.stop(audioCtx.currentTime+0.15);}catch(e){} }
 
-  // ปลดล็อกเสียง — ต้องเรียกจากการแตะจริง (เช่นตอนกดปุ่มเริ่มสแกน)
-  function unlockAudio(){
-    try{
-      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      if(audioCtx.state === 'suspended') audioCtx.resume();
-      var o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      g.gain.value = 0;                 // เงียบสนิท แค่ปลุก audio engine
-      o.connect(g); g.connect(audioCtx.destination);
-      o.start(); o.stop(audioCtx.currentTime + 0.02);
-    }catch(e){}
-  }
+  function flash(cls,ico,msg){ var fb=document.getElementById('feedback'); fb.className='feedback '+cls; fb.innerHTML='<span class="ico">'+ico+'</span><span>'+msg+'</span>'; }
 
-  function beep(freq){
-    try{
-      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      if(audioCtx.state === 'suspended') audioCtx.resume();
-      var o=audioCtx.createOscillator(), g=audioCtx.createGain();
-      o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.25, audioCtx.currentTime); o.start();
-      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+0.15);
-      o.stop(audioCtx.currentTime+0.15);
-    }catch(e){}
-  }
-
-  // เล่นโน้ตเดียว ณ เวลาที่กำหนด (ใช้ประกอบเสียงหลายโน้ต)
-  function tone(freq, startAt, dur){
-    var o=audioCtx.createOscillator(), g=audioCtx.createGain();
-    o.type='sine'; o.frequency.value=freq; o.connect(g); g.connect(audioCtx.destination);
-    g.gain.setValueAtTime(0.0001, startAt);
-    g.gain.exponentialRampToValueAtTime(0.25, startAt+0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, startAt+dur);
-    o.start(startAt); o.stop(startAt+dur+0.02);
-  }
-
-  // เสียงสำเร็จ: สองโน้ตไล่ขึ้น "ติ๊ง-ติง"
-  function chimeSuccess(){
-    try{
-      if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-      if(audioCtx.state === 'suspended') audioCtx.resume();
-      var t=audioCtx.currentTime;
-      tone(784, t,       0.12);   // โน้ต G5
-      tone(1047, t+0.12, 0.16);   // โน้ต C6 (สูงขึ้น)
-    }catch(e){}
-  }
+  // ---------- เริ่มต้น: ถ้ามี token เดิม เข้าแอปเลย ----------
+  if(token && teacher){ enterApp(); } else { show('login'); }
 </script>
 </body>
 </html>
