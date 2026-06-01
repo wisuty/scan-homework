@@ -48,6 +48,15 @@
   .bar-bg{height:14px;background:var(--panel2);border-radius:7px;overflow:hidden;}
   .bar-fill{height:100%;border-radius:7px;transition:width .4s;}
   .sub-h{font-size:13px;color:var(--muted);font-weight:600;margin:14px 0 6px;}
+  .rank-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);}
+  .rank-num{font-size:15px;font-weight:800;color:var(--muted);width:24px;text-align:center;}
+  .rank-mid{flex:1;min-width:0;}
+  .rank-name{font-size:14px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .rank-bar{height:8px;background:var(--panel2);border-radius:4px;margin-top:4px;overflow:hidden;}
+  .rank-fill{height:100%;border-radius:4px;}
+  .rank-pct{font-size:15px;font-weight:800;width:46px;text-align:right;}
+  .levelcard{display:flex;align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px;}
+  .levelcard .ic{font-size:40px;} .levelcard .nm{font-size:20px;font-weight:800;} .levelcard .ds{font-size:12px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -70,6 +79,7 @@
     <div class="topbar"><span id="who"></span><a href="#" id="logout" style="color:var(--accent);">ออกจากระบบ</a></div>
     <div class="nav">
       <button data-tab="scan" class="active">สแกน</button>
+      <button data-tab="ranking" style="display:none;">อันดับครู</button>
       <button data-tab="data">ดูข้อมูล</button>
       <button data-tab="settings">ตั้งค่า</button>
     </div>
@@ -114,6 +124,13 @@
       </div>
 
       <div id="dataBody"><p class="hint">กำลังโหลด…</p></div>
+    </div>
+
+    <!-- แท็บอันดับครู (เฉพาะแอดมิน) -->
+    <div id="tab-ranking" style="display:none;">
+      <div class="topbar"><b style="color:var(--ink)">อันดับครู (% ความสม่ำเสมอ)</b><a href="#" id="refreshRank" style="color:var(--accent)">↻</a></div>
+      <p class="hint">เรียงตาม % การส่งของนักเรียนในความรับผิดชอบ (ไม่ใช่จำนวนดิบ) เพื่อความเป็นธรรมกับครูที่สอนหลายห้อง • ข้อมูลนี้เห็นเฉพาะแอดมิน ไว้ดูแล/ช่วยเหลือ</p>
+      <div id="rankBody"><p class="hint">กำลังโหลด…</p></div>
     </div>
 
     <!-- แท็บตั้งค่า -->
@@ -182,10 +199,12 @@
     var isAdmin = teacher && teacher.role === 'admin';
     document.getElementById('who').textContent = isAdmin ? ('👑 '+teacher.name+' (แอดมิน)') : (teacher.name+' • '+teacher.grade);
     if(isAdmin){
-      // แอดมิน: เน้นดูภาพรวม เปิดแท็บ "ดูข้อมูล" ให้เลย
+      // แอดมิน: ซ่อนแท็บสแกน, โชว์แท็บอันดับครู, เปิดดูข้อมูลให้เลย
+      var scanBtn=document.querySelector('.nav button[data-tab="scan"]'); if(scanBtn) scanBtn.style.display='none';
+      var rankBtn=document.querySelector('.nav button[data-tab="ranking"]'); if(rankBtn) rankBtn.style.display='';
       document.querySelectorAll('.nav button').forEach(function(x){x.classList.remove('active');});
       var dataBtn=document.querySelector('.nav button[data-tab="data"]'); if(dataBtn) dataBtn.classList.add('active');
-      ['scan','data','settings'].forEach(function(tb){ document.getElementById('tab-'+tb).style.display=(tb==='data')?'block':'none'; });
+      ['scan','ranking','data','settings'].forEach(function(tb){ document.getElementById('tab-'+tb).style.display=(tb==='data')?'block':'none'; });
       loadMyData();
     }
     if(isAdmin) initAdminConfig();
@@ -220,8 +239,9 @@
   document.querySelectorAll('.nav button').forEach(function(b){
     b.onclick=function(){
       document.querySelectorAll('.nav button').forEach(function(x){x.classList.remove('active');}); b.classList.add('active');
-      ['scan','data','settings'].forEach(function(t){ document.getElementById('tab-'+t).style.display=(t===b.dataset.tab)?'block':'none'; });
+      ['scan','ranking','data','settings'].forEach(function(t){ document.getElementById('tab-'+t).style.display=(t===b.dataset.tab)?'block':'none'; });
       if(b.dataset.tab==='data') loadMyData();
+      if(b.dataset.tab==='ranking') loadRanking();
     };
   });
 
@@ -286,8 +306,16 @@
     var should=0,sent=0; rows.forEach(function(s){ should+=s.should; sent+=s.sent; });
     var pct=should?Math.round(sent/should*100):0, pendN=should-sent;
 
+    // การ์ดระดับเชิงบวก (เฉพาะครู ไม่โชว์ให้แอดมิน เพราะแอดมินดูภาพรวม)
+    var h='';
+    var isAdmin = teacher && teacher.role==='admin';
+    if(!isAdmin && MYDATA.level && !fSub && !fRoom){
+      var lv=MYDATA.level;
+      h+='<div class="levelcard"><div class="ic">'+lv.icon+'</div><div><div class="nm" style="color:'+lv.color+'">ระดับ '+lv.name+'</div><div class="ds">การส่งของนักเรียนในความรับผิดชอบ '+pct+'% — ทำต่อไปให้ถึงระดับถัดไป!</div></div></div>';
+    }
+
     // การ์ดตัวเลขใหญ่ + วงแหวน %
-    var h='<div class="stats">';
+    h+='<div class="stats">';
     h+='<div class="stat">'+ring(pct)+'<div class="lbl">ส่งแล้ว</div></div>';
     h+='<div class="stat"><div class="big" style="color:var(--err)">'+pendN+'</div><div class="lbl">ค้างส่ง (คน-ครั้ง)</div></div>';
     h+='<div class="stat"><div class="big">'+rows.length+'</div><div class="lbl">ชิ้นงาน</div></div>';
@@ -327,6 +355,26 @@
       '<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="8" stroke-linecap="round" '+
       'stroke-dasharray="'+C+'" stroke-dashoffset="'+off+'" transform="rotate(-90 32 32)"/>'+
       '<text x="32" y="38" text-anchor="middle" font-size="16" font-weight="800" fill="var(--ink)">'+p+'%</text></svg>';
+  }
+
+  // ---------- อันดับครู (แอดมิน) ----------
+  document.getElementById('refreshRank').onclick=function(e){ e.preventDefault(); loadRanking(); };
+  function loadRanking(){
+    document.getElementById('rankBody').innerHTML='<p class="hint">กำลังโหลด…</p>';
+    api({action:'ranking',token:token}).then(function(res){
+      if(res.authError){ logoutNow(); return; }
+      if(!res.ok){ document.getElementById('rankBody').innerHTML='<p class="hint">'+(res.message||'โหลดไม่ได้')+'</p>'; return; }
+      var h='';
+      res.ranking.forEach(function(r,i){
+        var col=r.pct>=75?'var(--ok)':(r.pct>=50?'var(--warn)':'var(--err)');
+        var medal=(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1));
+        h+='<div class="rank-row"><div class="rank-num">'+medal+'</div>'+
+           '<div class="rank-mid"><div class="rank-name">'+r.level.icon+' '+r.name+' · '+r.grade+'</div>'+
+           '<div class="rank-bar"><div class="rank-fill" style="width:'+r.pct+'%;background:'+col+'"></div></div></div>'+
+           '<div class="rank-pct" style="color:'+col+'">'+r.pct+'%</div></div>';
+      });
+      document.getElementById('rankBody').innerHTML=h || '<p class="hint">ยังไม่มีข้อมูล</p>';
+    }).catch(function(){ document.getElementById('rankBody').innerHTML='<p class="hint">⚠️ เชื่อมต่อไม่ได้</p>'; });
   }
 
 
@@ -370,7 +418,7 @@
   // ตัวช่วยสลับแท็บจากที่อื่น
   function gotoTab(name){
     document.querySelectorAll('.nav button').forEach(function(x){x.classList.toggle('active', x.dataset.tab===name);});
-    ['scan','data','settings'].forEach(function(tb){ document.getElementById('tab-'+tb).style.display=(tb===name)?'block':'none'; });
+    ['scan','ranking','data','settings'].forEach(function(tb){ document.getElementById('tab-'+tb).style.display=(tb===name)?'block':'none'; });
     if(name==='data') loadMyData();
   }
 
