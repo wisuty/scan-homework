@@ -53,6 +53,7 @@
 <body>
   <h1>📕 สแกนส่งการบ้าน</h1>
   <div id="brand" class="hint" style="margin:-8px 0 12px;font-size:13px;"></div>
+  <div id="setupWarn" style="display:none;background:var(--warn);color:#3d2700;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:600;cursor:pointer;"></div>
 
   <!-- ===== หน้าล็อกอิน ===== -->
   <div class="card" id="loginScreen">
@@ -117,6 +118,21 @@
 
     <!-- แท็บตั้งค่า -->
     <div id="tab-settings" style="display:none;">
+
+      <!-- ตั้งค่าระบบ (เฉพาะแอดมิน) -->
+      <div class="card" id="adminConfigCard" style="display:none;">
+        <b>⚙️ ตั้งค่าระบบ (แอดมิน)</b>
+        <label>ชื่อโรงเรียน</label><input id="cfgSchool" type="text" placeholder="เช่น โรงเรียนสตรีวิทยา">
+        <label>หมวด/กลุ่มสาระ</label><input id="cfgDept" type="text" placeholder="เช่น หมวดคณิตศาสตร์">
+        <label>ภาคเรียน/ปีการศึกษา</label><input id="cfgTerm" type="text" placeholder="เช่น 1/2569">
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;"><label>เปิดเทอม</label><input id="cfgStart" type="date"></div>
+          <div style="flex:1;"><label>ปิดเทอม</label><input id="cfgEnd" type="date"></div>
+        </div>
+        <button class="btn" id="cfgBtn">บันทึกการตั้งค่า</button>
+        <p class="hint" id="cfgHint"></p>
+      </div>
+
       <div class="card">
         <b>เปลี่ยนรหัสผ่าน</b>
         <label>รหัสผ่านเดิม</label><input id="oldpw" type="password">
@@ -163,7 +179,16 @@
 
   function enterApp(){
     show('app');
-    document.getElementById('who').textContent = teacher.name+' • '+teacher.grade;
+    var isAdmin = teacher && teacher.role === 'admin';
+    document.getElementById('who').textContent = isAdmin ? ('👑 '+teacher.name+' (แอดมิน)') : (teacher.name+' • '+teacher.grade);
+    if(isAdmin){
+      // แอดมิน: เน้นดูภาพรวม เปิดแท็บ "ดูข้อมูล" ให้เลย
+      document.querySelectorAll('.nav button').forEach(function(x){x.classList.remove('active');});
+      var dataBtn=document.querySelector('.nav button[data-tab="data"]'); if(dataBtn) dataBtn.classList.add('active');
+      ['scan','data','settings'].forEach(function(tb){ document.getElementById('tab-'+tb).style.display=(tb==='data')?'block':'none'; });
+      loadMyData();
+    }
+    if(isAdmin) initAdminConfig();
     loadForm();
   }
 
@@ -304,6 +329,50 @@
       '<text x="32" y="38" text-anchor="middle" font-size="16" font-weight="800" fill="var(--ink)">'+p+'%</text></svg>';
   }
 
+
+  // ---------- ตั้งค่าระบบ (แอดมิน) ----------
+  function initAdminConfig(){
+    if(!(teacher && teacher.role==='admin')) return;
+    document.getElementById('adminConfigCard').style.display='block';
+    api({action:'getconfig',token:token}).then(function(res){
+      if(res.authError){ logoutNow(); return; }
+      if(!res.ok) return;
+      var c=res.config;
+      document.getElementById('cfgSchool').value=c.SCHOOL_NAME||'';
+      document.getElementById('cfgDept').value=c.DEPARTMENT_NAME||'';
+      document.getElementById('cfgTerm').value=c.CURRENT_TERM||'';
+      document.getElementById('cfgStart').value=c.TERM_START||'';
+      document.getElementById('cfgEnd').value=c.TERM_END||'';
+      // เด้งเตือนถ้ายังไม่ได้ตั้ง (ยังเป็นค่า default หรือว่าง)
+      var notSet = !c.SCHOOL_NAME || c.SCHOOL_NAME==='โรงเรียนตัวอย่าง' || !c.DEPARTMENT_NAME || !c.CURRENT_TERM;
+      var w=document.getElementById('setupWarn');
+      if(notSet){
+        w.style.display='block';
+        w.textContent='⚠️ ยังไม่ได้ตั้งค่าระบบ — แตะที่นี่เพื่อตั้งชื่อโรงเรียน/หมวด/ภาคเรียน';
+        w.onclick=function(){ gotoTab('settings'); };
+      } else { w.style.display='none'; }
+    });
+  }
+  document.getElementById('cfgBtn').onclick=function(){
+    document.getElementById('cfgHint').textContent='กำลังบันทึก…';
+    api({action:'saveconfig',token:token,
+      SCHOOL_NAME:document.getElementById('cfgSchool').value,
+      DEPARTMENT_NAME:document.getElementById('cfgDept').value,
+      CURRENT_TERM:document.getElementById('cfgTerm').value,
+      TERM_START:document.getElementById('cfgStart').value,
+      TERM_END:document.getElementById('cfgEnd').value
+    }).then(function(res){
+      if(res.authError){ logoutNow(); return; }
+      document.getElementById('cfgHint').textContent=(res.ok?'✅ ':'❌ ')+res.message;
+      if(res.ok){ loadForm(); initAdminConfig(); }   // รีเฟรชหัวแอป + ซ่อนแบนเนอร์เตือน
+    });
+  };
+  // ตัวช่วยสลับแท็บจากที่อื่น
+  function gotoTab(name){
+    document.querySelectorAll('.nav button').forEach(function(x){x.classList.toggle('active', x.dataset.tab===name);});
+    ['scan','data','settings'].forEach(function(tb){ document.getElementById('tab-'+tb).style.display=(tb===name)?'block':'none'; });
+    if(name==='data') loadMyData();
+  }
 
   // ---------- เปลี่ยนรหัสผ่าน ----------
   document.getElementById('pwBtn').onclick=function(){
