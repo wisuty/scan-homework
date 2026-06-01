@@ -37,6 +37,17 @@
   th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:left;}
   th{color:var(--muted);font-weight:600;}
   .pct-ok{color:var(--ok);font-weight:700;} .pct-low{color:var(--err);font-weight:700;}
+  .stats{display:flex;gap:8px;margin-bottom:12px;}
+  .stat{flex:1;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 10px;text-align:center;}
+  .stat .big{font-size:30px;font-weight:800;line-height:1.1;}
+  .stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;}
+  .ring{display:block;margin:0 auto;}
+  .bar-row{margin:9px 0;}
+  .bar-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
+  .bar-top .nm{color:var(--ink);} .bar-top .vl{color:var(--muted);}
+  .bar-bg{height:14px;background:var(--panel2);border-radius:7px;overflow:hidden;}
+  .bar-fill{height:100%;border-radius:7px;transition:width .4s;}
+  .sub-h{font-size:13px;color:var(--muted);font-weight:600;margin:14px 0 6px;}
 </style>
 </head>
 <body>
@@ -91,10 +102,17 @@
 
     <!-- แท็บดูข้อมูล -->
     <div id="tab-data" style="display:none;">
-      <div class="card">
-        <div class="topbar"><b style="color:var(--ink)">สรุปงานของฉัน</b><a href="#" id="refreshData" style="color:var(--accent)">รีเฟรช</a></div>
-        <div id="dataBody"><p class="hint">กำลังโหลด…</p></div>
+      <div class="topbar"><b style="color:var(--ink)">สรุปงานของฉัน</b><a href="#" id="refreshData" style="color:var(--accent)">↻ รีเฟรช</a></div>
+
+      <!-- ตัวกรอง -->
+      <div class="card" style="padding:10px 12px;">
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;"><label>วิชา</label><select id="fSubject"><option value="">ทุกวิชา</option></select></div>
+          <div style="flex:1;"><label>ห้อง</label><select id="fRoom"><option value="">ทุกห้อง</option></select></div>
+        </div>
       </div>
+
+      <div id="dataBody"><p class="hint">กำลังโหลด…</p></div>
     </div>
 
     <!-- แท็บตั้งค่า -->
@@ -214,21 +232,78 @@
   }
 
   // ---------- ดูข้อมูล ----------
+  var MYDATA = null;
   document.getElementById('refreshData').onclick=function(e){ e.preventDefault(); loadMyData(); };
+  document.getElementById('fSubject').onchange=function(){ renderData(); };
+  document.getElementById('fRoom').onchange=function(){ renderData(); };
+
   function loadMyData(){
     document.getElementById('dataBody').innerHTML='<p class="hint">กำลังโหลด…</p>';
     api({action:'mydata',token:token}).then(function(d){
       if(d.authError){ logoutNow(); return; }
-      var h='<p class="hint">ภาคเรียน '+d.term+' • ค้างส่งรวม '+d.pending.length+' รายการ</p>';
-      h+='<table><tr><th>ชิ้นงาน</th><th>ห้อง</th><th>ส่ง/ควร</th><th>ครบ</th></tr>';
-      d.summary.forEach(function(s){
-        var pct=s.should?Math.round(s.sent/s.should*100):0;
-        h+='<tr><td>'+s.name+'<br><span style="color:var(--muted);font-size:11px">'+s.subject+'</span></td><td>'+s.room+'</td><td>'+s.sent+'/'+s.should+'</td><td class="'+(pct>=80?'pct-ok':'pct-low')+'">'+pct+'%</td></tr>';
-      });
-      h+='</table>';
-      document.getElementById('dataBody').innerHTML=h;
-    });
+      if(!d.ok){ document.getElementById('dataBody').innerHTML='<p class="hint">โหลดข้อมูลไม่ได้</p>'; return; }
+      MYDATA=d;
+      // เติมตัวกรอง
+      var fs=document.getElementById('fSubject'); fs.innerHTML='<option value="">ทุกวิชา</option>';
+      d.subjects.forEach(function(s){ var o=document.createElement('option');o.value=s.code;o.textContent=s.name;fs.appendChild(o); });
+      var fr=document.getElementById('fRoom'); fr.innerHTML='<option value="">ทุกห้อง</option>';
+      d.rooms.forEach(function(r){ var o=document.createElement('option');o.value=r;o.textContent=r;fr.appendChild(o); });
+      renderData();
+    }).catch(function(){ document.getElementById('dataBody').innerHTML='<p class="hint">⚠️ เชื่อมต่อไม่ได้</p>'; });
   }
+
+  function renderData(){
+    if(!MYDATA) return;
+    var fSub=document.getElementById('fSubject').value, fRoom=document.getElementById('fRoom').value;
+    var rows=MYDATA.summary.filter(function(s){ return (!fSub||s.subjCode===fSub)&&(!fRoom||s.room===fRoom); });
+    var pend=MYDATA.pending.filter(function(p){ return (!fSub||p.subjCode===fSub)&&(!fRoom||p.room===fRoom); });
+
+    var should=0,sent=0; rows.forEach(function(s){ should+=s.should; sent+=s.sent; });
+    var pct=should?Math.round(sent/should*100):0, pendN=should-sent;
+
+    // การ์ดตัวเลขใหญ่ + วงแหวน %
+    var h='<div class="stats">';
+    h+='<div class="stat">'+ring(pct)+'<div class="lbl">ส่งแล้ว</div></div>';
+    h+='<div class="stat"><div class="big" style="color:var(--err)">'+pendN+'</div><div class="lbl">ค้างส่ง (คน-ครั้ง)</div></div>';
+    h+='<div class="stat"><div class="big">'+rows.length+'</div><div class="lbl">ชิ้นงาน</div></div>';
+    h+='</div>';
+
+    // กราฟแท่ง % ต่อชิ้นงาน
+    h+='<div class="card"><div class="sub-h">% การส่ง แต่ละชิ้นงาน</div>';
+    if(!rows.length) h+='<p class="hint">ไม่มีข้อมูลตามตัวกรอง</p>';
+    rows.forEach(function(s){
+      var p=s.should?Math.round(s.sent/s.should*100):0;
+      var col=p>=80?'var(--ok)':(p>=50?'var(--warn)':'var(--err)');
+      h+='<div class="bar-row"><div class="bar-top"><span class="nm">'+s.name+' · '+s.room+'</span><span class="vl">'+s.sent+'/'+s.should+' ('+p+'%)</span></div>';
+      h+='<div class="bar-bg"><div class="bar-fill" style="width:'+p+'%;background:'+col+'"></div></div></div>';
+    });
+    h+='</div>';
+
+    // รายชื่อค้างส่ง
+    h+='<div class="card"><div class="sub-h">รายชื่อค้างส่ง ('+pend.length+')</div>';
+    if(!pend.length) h+='<p class="hint">🎉 ไม่มีคนค้างส่งตามตัวกรองนี้</p>';
+    else { h+='<ul class="list">';
+      pend.slice(0,200).forEach(function(p){
+        h+='<li><span>'+p.name+'</span><span>'+p.room+' เลขที่ '+p.no+' · '+p.asg+'</span></li>';
+      });
+      h+='</ul>'; if(pend.length>200) h+='<p class="hint">แสดง 200 รายการแรก</p>';
+    }
+    h+='</div>';
+
+    document.getElementById('dataBody').innerHTML=h;
+  }
+
+  // วงแหวนเปอร์เซ็นต์ (SVG)
+  function ring(p){
+    var R=26,C=2*Math.PI*R, off=C*(1-p/100);
+    var col=p>=80?'var(--ok)':(p>=50?'var(--warn)':'var(--err)');
+    return '<svg class="ring" width="64" height="64" viewBox="0 0 64 64">'+
+      '<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="var(--panel2)" stroke-width="8"/>'+
+      '<circle cx="32" cy="32" r="'+R+'" fill="none" stroke="'+col+'" stroke-width="8" stroke-linecap="round" '+
+      'stroke-dasharray="'+C+'" stroke-dashoffset="'+off+'" transform="rotate(-90 32 32)"/>'+
+      '<text x="32" y="38" text-anchor="middle" font-size="16" font-weight="800" fill="var(--ink)">'+p+'%</text></svg>';
+  }
+
 
   // ---------- เปลี่ยนรหัสผ่าน ----------
   document.getElementById('pwBtn').onclick=function(){
