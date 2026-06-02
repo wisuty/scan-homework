@@ -79,7 +79,7 @@
 </style>
 </head>
 <body>
-  <h1>📕 สแกนส่งการบ้าน</h1>
+  <h1>📘 Homework</h1>
   <div id="brand" class="hint" style="margin:-8px 0 12px;font-size:13px;"></div>
   <div id="setupWarn" style="display:none;background:var(--warn);color:#3d2700;padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:13px;font-weight:600;cursor:pointer;"></div>
 
@@ -364,6 +364,7 @@
         var li=document.createElement('li'); li.innerHTML='<span>'+res.name+'</span><span>เลขที่ '+res.no+' • '+status+'</span>';
         document.getElementById('list').prepend(li); flash('ok','✅',res.name+' (เลขที่ '+res.no+')'); chimeSuccess();
       } else if(res.duplicate){ session[c]=true; flash('dup','⚠️',res.message); beep(440); }
+      else if(res.wrongRoom){ flash('err','🚫',res.message); errSound(); }
       else { flash('err','❌',res.message); beep(220); }
       setTimeout(function(){busy=false;},1200);
     }).catch(function(e){ flash('err','❌','ส่งข้อมูลไม่ได้'); busy=false; });
@@ -459,6 +460,22 @@
       h+='</ul>'; if(pend.length>200) h+='<p class="hint">แสดง 200 รายการแรก</p>';
     }
     h+='</div>';
+
+    // อันดับนักเรียนส่งงานครบ (สำหรับใช้พิจารณาคะแนนปลายเทอม) — กรองตามห้องได้ (ไม่ผูกวิชา)
+    if(MYDATA.studentRank && MYDATA.studentRank.length){
+      var rank=MYDATA.studentRank.filter(function(s){ return !fRoom || s.room===fRoom; });
+      h+='<div class="card"><div class="sub-h">🏅 อันดับนักเรียนส่งงานครบ ('+rank.length+' คน)</div>';
+      h+='<p class="hint" style="margin-top:0;">เรียงตาม % การส่ง (เทียบงานที่ถูกสั่ง) ไว้พิจารณาคะแนนปลายเทอม'+(fSub?' • หมายเหตุ: อันดับนี้รวมทุกวิชาที่สอน ไม่กรองตามวิชา':'')+'</p>';
+      rank.slice(0,300).forEach(function(s,i){
+        var col=s.pct>=80?'var(--ok)':(s.pct>=50?'var(--warn)':'var(--err)');
+        var medal=(i===0?'🥇':i===1?'🥈':i===2?'🥉':(i+1));
+        h+='<div class="rank-row"><div class="rank-num">'+medal+'</div>'+
+           '<div class="rank-mid"><div class="rank-name">'+s.name+' · '+s.room+' เลขที่ '+s.no+'</div>'+
+           '<div class="rank-bar"><div class="rank-fill" style="width:'+s.pct+'%;background:'+col+'"></div></div></div>'+
+           '<div class="rank-pct" style="color:'+col+'">'+s.sent+'/'+s.should+'</div></div>';
+      });
+      h+='</div>';
+    }
 
     document.getElementById('dataBody').innerHTML=h;
   }
