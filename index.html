@@ -255,6 +255,7 @@
 
   // ---------- ล็อกอิน ----------
   document.getElementById('lgBtn').onclick=function(){
+    unlockAudio();
     var u=document.getElementById('lgUser').value.trim(), p=document.getElementById('lgPass').value;
     if(!u||!p){ document.getElementById('lgHint').textContent='กรอกชื่อผู้ใช้และรหัสผ่าน'; return; }
     document.getElementById('lgHint').textContent='กำลังเข้าสู่ระบบ…';
@@ -413,6 +414,16 @@
       h+='<div class="levelcard"><div class="ic">'+lv.icon+'</div><div><div class="nm" style="color:'+lv.color+'">ระดับ '+lv.name+'</div><div class="ds">การส่งของนักเรียนในความรับผิดชอบ '+pct+'% — ทำต่อไปให้ถึงระดับถัดไป!</div></div></div>';
     }
 
+    // แถบสถิติ: วิชา / ห้อง / นักเรียนที่รับผิดชอบ (เฉพาะครู, แสดงตอนไม่กรอง)
+    if(!isAdmin && MYDATA.stats && !fSub && !fRoom){
+      var st=MYDATA.stats;
+      h+='<div class="stats">';
+      h+='<div class="stat"><div class="big">'+st.subjects+'</div><div class="lbl">วิชาที่สอน</div></div>';
+      h+='<div class="stat"><div class="big">'+st.rooms+'</div><div class="lbl">ห้องที่สอน</div></div>';
+      h+='<div class="stat"><div class="big">'+st.students+'</div><div class="lbl">นักเรียนที่รับผิดชอบ</div></div>';
+      h+='</div>';
+    }
+
     // การ์ดตัวเลขใหญ่ + วงแหวน %
     h+='<div class="stats">';
     h+='<div class="stat">'+ring(pct)+'<div class="lbl">ส่งแล้ว</div></div>';
@@ -565,7 +576,7 @@
       MAX_GRADE:document.getElementById('cfgMaxGrade').value
     }).then(function(res){
       if(res.authError){ logoutNow(); return; }
-      document.getElementById('cfgHint').textContent=(res.ok?'✅ ':'❌ ')+res.message;
+      document.getElementById('cfgHint').textContent=(res.ok?'✅ ':'❌ ')+res.message; resultSound(res);
       if(res.ok){ loadForm(); initAdminConfig(); }   // รีเฟรชหัวแอป + ซ่อนแบนเนอร์เตือน
     });
   };
@@ -591,12 +602,13 @@
       maxScore:document.getElementById('mScore').value
     }).then(function(res){
       if(res.authError){ logoutNow(); return; }
+      resultSound(res);
       hint.textContent=(res.ok?'✅ ':'❌ ')+res.message;
       if(res.ok){
         document.getElementById('mName').value=''; document.getElementById('mDue').value=''; document.getElementById('mScore').value='';
         loadAssignments(); loadForm();   // รีเฟรชรายการ + ตัวเลือกตอนสแกน
       }
-    }).catch(function(){ hint.textContent='⚠️ เชื่อมต่อไม่ได้'; });
+    }).catch(function(){ errSound(); hint.textContent='⚠️ เชื่อมต่อไม่ได้'; });
   };
 
   function loadAssignments(){
@@ -627,7 +639,7 @@
       document.querySelectorAll('#asgList .ad-toggle').forEach(function(b){
         b.onclick=function(){
           api({action:'updateasg',token:token,assignmentCode:b.getAttribute('data-code'),statusAsg:b.getAttribute('data-to')})
-            .then(function(r){ if(r.authError){logoutNow();return;} loadAssignments(); });
+            .then(function(r){ if(r.authError){logoutNow();return;} resultSound(r); loadAssignments(); });
         };
       });
     }).catch(function(){ document.getElementById('asgList').innerHTML='<p class="hint">⚠️ เชื่อมต่อไม่ได้</p>'; });
@@ -671,19 +683,19 @@
     document.querySelectorAll('#adBody .ad-mark').forEach(function(b){
       b.onclick=function(){ b.textContent='…';
         api({action:'setstatus',token:token,assignmentCode:AD_CODE,studentCode:b.getAttribute('data-code'),status:b.getAttribute('data-st')})
-          .then(function(r){ if(r.authError){logoutNow();return;} openAsgDetail(AD_CODE, document.getElementById('adTitle').textContent.split(' · ')[0]); }); };
+          .then(function(r){ if(r.authError){logoutNow();return;} resultSound(r); openAsgDetail(AD_CODE, document.getElementById('adTitle').textContent.split(' · ')[0]); }); };
     });
     document.querySelectorAll('#adBody .ad-unmark').forEach(function(b){
       b.onclick=function(){ b.textContent='…';
         api({action:'setstatus',token:token,assignmentCode:AD_CODE,studentCode:b.getAttribute('data-code'),remove:'1'})
-          .then(function(r){ if(r.authError){logoutNow();return;} openAsgDetail(AD_CODE, document.getElementById('adTitle').textContent.split(' · ')[0]); }); };
+          .then(function(r){ if(r.authError){logoutNow();return;} resultSound(r); openAsgDetail(AD_CODE, document.getElementById('adTitle').textContent.split(' · ')[0]); }); };
     });
     document.querySelectorAll('#adBody .ad-savescore').forEach(function(b){
       b.onclick=function(){
         var inp=document.querySelector('#adBody .ad-score[data-code="'+b.getAttribute('data-code')+'"]');
         b.textContent='…';
         api({action:'setscore',token:token,assignmentCode:AD_CODE,studentCode:b.getAttribute('data-code'),score:inp?inp.value:''})
-          .then(function(r){ if(r.authError){logoutNow();return;} b.textContent='✓'; setTimeout(function(){ b.textContent='บันทึกคะแนน'; },1000); }); };
+          .then(function(r){ if(r.authError){logoutNow();return;} resultSound(r); b.textContent='✓'; setTimeout(function(){ b.textContent='บันทึกคะแนน'; },1000); }); };
     });
   }
   function esc(s){ return String(s).replace(/"/g,'&quot;'); }
@@ -725,7 +737,7 @@
     document.getElementById('pwHint').textContent='กำลังบันทึก…';
     api({action:'changepw',token:token,oldpw:o,newpw:n}).then(function(res){
       if(res.authError){ logoutNow(); return; }
-      document.getElementById('pwHint').textContent=(res.ok?'✅ ':'❌ ')+res.message;
+      document.getElementById('pwHint').textContent=(res.ok?'✅ ':'❌ ')+res.message; resultSound(res);
       if(res.ok){ document.getElementById('oldpw').value=''; document.getElementById('newpw').value=''; }
     });
   };
@@ -740,6 +752,12 @@
   function beep(f){ try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended')audioCtx.resume();
     var o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=f;o.connect(g);g.connect(audioCtx.destination);
     g.gain.setValueAtTime(0.25,audioCtx.currentTime);o.start();g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.15);o.stop(audioCtx.currentTime+0.15);}catch(e){} }
+  // เสียงสำเร็จ / ไม่สำเร็จ (ใช้ทั่วทั้งแอป)
+  function okSound(){ chimeSuccess(); }
+  function errSound(){ try{ if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended')audioCtx.resume();
+    var t=audioCtx.currentTime; tone(330,t,0.14); tone(247,t+0.14,0.2);}catch(e){} }   // สองโน้ตลง = ผิดพลาด
+  // เล่นเสียงตามผลลัพธ์ res.ok
+  function resultSound(res){ if(res && res.ok) okSound(); else errSound(); }
 
   function flash(cls,ico,msg){ var fb=document.getElementById('feedback'); fb.className='feedback '+cls; fb.innerHTML='<span class="ico">'+ico+'</span><span>'+msg+'</span>'; }
 
